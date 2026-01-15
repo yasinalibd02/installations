@@ -1,0 +1,62 @@
+name: White-Label Build
+
+on:
+  repository_dispatch:
+    types: [build_app]
+
+jobs:
+  build:
+    name: Build White-Label App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Run White-Label Customization
+        run: |
+          python3 whitelabel_script.py \
+            "${{ github.event.client_payload.app_name }}" \
+            "${{ github.event.client_payload.package_name }}" \
+            "${{ github.event.client_payload.domain }}" \
+            "${{ github.event.client_payload.logo_base64 }}"
+
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Create Client Branch
+        run: |
+          git config --global user.name "White-Label Bot"
+          git config --global user.email "bot@example.com"
+          git checkout -b client-${{ github.event.client_payload.app_name }}
+          git add .
+          git commit -m "Auto-generated build for ${{ github.event.client_payload.app_name }}"
+          git push origin client-${{ github.event.client_payload.app_name }} --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-${{ github.event.client_payload.app_name }}
+          path: build/app/outputs/flutter-apk/app-release.apk

@@ -147,7 +147,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       } else if (response.statusCode == 403) {
         setState(() {
           _statusMessage =
-              'Permission denied (403). Make sure your PAT has "workflow" scope.';
+              'Permission denied (403). Grant "workflow" scope at github.com/settings/tokens';
           _isError = true;
         });
       } else {

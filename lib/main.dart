@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:ui' as BorderType;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -109,7 +109,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
 
     try {
-      final repo = _repoController.text.trim(); // "user/repo"
+      String repo = _repoController.text.trim();
+      // Clean up if user pasted full URL
+      repo = repo.replaceFirst(
+        RegExp(r'^https?:\/\/(www\.)?github\.com\/'),
+        '',
+      );
+      if (repo.endsWith('/')) repo = repo.substring(0, repo.length - 1);
       final pat = _patController.text.trim();
 
       final url = Uri.parse('https://api.github.com/repos/$repo/dispatches');

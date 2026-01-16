@@ -110,9 +110,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     try {
       String repo = _repoController.text.trim();
-      // Clean up if user pasted full URL
+      // Clean up if user pasted full URL (with or without protocol)
       repo = repo.replaceFirst(
-        RegExp(r'^https?:\/\/(www\.)?github\.com\/'),
+        RegExp(r'^(https?:\/\/(www\.)?)?github\.com\/'),
         '',
       );
       if (repo.endsWith('/')) repo = repo.substring(0, repo.length - 1);
@@ -143,6 +143,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _statusMessage =
               'Build triggered successfully! Check GitHub Actions.';
           _isError = false;
+        });
+      } else if (response.statusCode == 403) {
+        setState(() {
+          _statusMessage =
+              'Permission denied (403). Make sure your PAT has "workflow" scope.';
+          _isError = true;
         });
       } else {
         setState(() {

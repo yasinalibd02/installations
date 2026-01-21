@@ -46,9 +46,17 @@ class GitHubService {
       if (checkResponse.statusCode == 200) {
         final data = jsonDecode(checkResponse.body);
         existingSha = data['sha'];
+      } else if (checkResponse.statusCode != 404) {
+        // If it's not 200 (found) and not 404 (not found), it's an error
+        throw Exception(
+          'Failed to check file existence: ${checkResponse.statusCode} - ${checkResponse.body}',
+        );
       }
     } catch (e) {
-      // File doesn't exist, that's fine
+      // Re-throw if it's a critical network error (like ClientException)
+      // The previous code swallowed ALL errors, treating network failure as "file doesn't exist"
+      // which then caused the subsequent PUT to fail with the exact same error.
+      rethrow;
     }
 
     // Upload or update the file

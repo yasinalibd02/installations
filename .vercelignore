@@ -1,3 +1,8 @@
-*
-!index.html
-!vercel.json
+# Allow everything for Vercel deployment
+# except dart helper files
+.dart_tool/
+.idea/
+build/
+android/
+ios/
+test/

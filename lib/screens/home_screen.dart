@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:typed_data';
+
 import '../models/build_config.dart';
 import '../services/github_service.dart';
-import '../widgets/file_upload_widget.dart';
+
 import '../widgets/progress_tracker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -22,10 +22,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final _githubService = GitHubService();
 
-  Uint8List? _logoBytes;
-  String? _logoFileName;
   bool _isProcessing = false;
-  BuildStep _currentStep = BuildStep.uploadingLogo;
+  BuildStep _currentStep = BuildStep.triggeringWorkflow;
   String? _errorMessage;
   String? _downloadUrl;
   String? _workflowUrl;
@@ -44,19 +42,13 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    if (_logoBytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please upload a logo'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
     setState(() {
       _isProcessing = true;
-      _currentStep = BuildStep.uploadingLogo;
+      _currentStep = BuildStep.triggeringWorkflow;
       _errorMessage = null;
       _downloadUrl = null;
       _workflowUrl = null;
@@ -71,24 +63,14 @@ class _HomeScreenState extends State<HomeScreen> {
       final repo = repoInfo['repo']!;
       final token = _tokenController.text.trim();
 
-      // Step 1: Upload logo
-      setState(() => _currentStep = BuildStep.uploadingLogo);
-      final logoPath = await _githubService.uploadLogo(
-        token: token,
-        owner: owner,
-        repo: repo,
-        logoBytes: _logoBytes!,
-        fileName: _logoFileName ?? 'launcher.png',
-      );
-
-      // Step 2: Trigger workflow
+      // Step 2: Trigger workflow (logoPath is empty now)
       setState(() => _currentStep = BuildStep.triggeringWorkflow);
       final config = BuildConfig(
         repoUrl: _repoUrlController.text.trim(),
         token: token,
         appName: _appNameController.text.trim(),
         packageName: _packageNameController.text.trim(),
-        logoPath: logoPath,
+        logoPath: '', // Empty path indicates no logo change
       );
 
       final runId = await _githubService.triggerWorkflow(
@@ -417,21 +399,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Logo Upload
-            FileUploadWidget(
-              onFileSelected: (bytes, fileName) {
-                setState(() {
-                  _logoBytes = bytes;
-                  _logoFileName = fileName;
-                });
-              },
-              onFileClear: () {
-                setState(() {
-                  _logoBytes = null;
-                  _logoFileName = null;
-                });
-              },
-            ),
             const SizedBox(height: 32),
 
             // Submit Button

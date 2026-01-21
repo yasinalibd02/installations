@@ -13,7 +13,7 @@ on:
         type: string
       logo_path:
         description: 'Path to logo file in repository'
-        required: true
+        required: false
         type: string
 
 jobs:
@@ -48,6 +48,7 @@ jobs:
         run: flutter pub run change_app_package_name:main ${{ inputs.package_name }}
       
       - name: Copy logo to assets
+        if: ${{ inputs.logo_path != '' }}
         run: |
           mkdir -p assets/logo
           cp ${{ inputs.logo_path }} assets/logo/launcher.png

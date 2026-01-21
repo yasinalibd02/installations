@@ -1,2 +1,3 @@
 *
-# Ignore everything - this is a mobile app, not a web app
+!index.html
+!vercel.json

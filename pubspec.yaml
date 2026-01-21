@@ -57,6 +57,11 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  
+  # Automation tools
+  change_app_package_name: ^1.1.0
+  flutter_launcher_icons: ^0.14.2
+  rename_app: ^1.6.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

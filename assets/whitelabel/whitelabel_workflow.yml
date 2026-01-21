@@ -30,16 +30,19 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Flutter Pub Get
+        run: flutter pub get
+
       - name: Run White-Label Customization
         run: |
-          python3 whitelabel_script.py \
+          python3 assets/whitelabel/whitelabel_script.py \
             "${{ github.event.client_payload.app_name }}" \
             "${{ github.event.client_payload.package_name }}" \
             "${{ github.event.client_payload.domain }}" \
             "${{ github.event.client_payload.logo_base64 }}"
 
-      - name: Flutter Pub Get
-        run: flutter pub get
+      - name: Generate Icons
+        run: flutter pub run flutter_launcher_icons
 
       - name: Build APK
         run: flutter build apk --release

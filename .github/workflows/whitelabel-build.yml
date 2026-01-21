@@ -1,0 +1,87 @@
+name: White-Label Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: 'New app name'
+        required: true
+        type: string
+      package_name:
+        description: 'New package name (e.g., com.example.app)'
+        required: true
+        type: string
+      logo_path:
+        description: 'Path to logo file in repository'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+      
+      - name: Get dependencies
+        run: flutter pub get
+      
+      - name: Update app name
+        run: dart run rename_app:main all="${{ inputs.app_name }}"
+      
+      - name: Update package name
+        run: flutter pub run change_app_package_name:main ${{ inputs.package_name }}
+      
+      - name: Copy logo to assets
+        run: |
+          mkdir -p assets/logo
+          cp ${{ inputs.logo_path }} assets/logo/launcher.png
+      
+      - name: Update launcher icon
+        run: flutter pub run flutter_launcher_icons:main
+      
+      - name: Build APK
+        run: flutter build apk --target-platform android-arm,android-arm64,android-x64 --split-per-abi --release
+      
+      - name: Create new branch
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          BRANCH_NAME="whitelabel/${{ inputs.app_name }}-${{ github.run_number }}"
+          git checkout -b $BRANCH_NAME
+          git add .
+          git commit -m "White-label build: ${{ inputs.app_name }}" || echo "No changes to commit"
+          git push origin $BRANCH_NAME || echo "Failed to push branch"
+      
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.app_name }}-apks
+          path: build/app/outputs/flutter-apk/*.apk
+          retention-days: 30
+      
+      - name: Create release summary
+        run: |
+          echo "## White-Label Build Complete! 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**App Name:** ${{ inputs.app_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Package Name:** ${{ inputs.package_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Logo:** ${{ inputs.logo_path }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### APK Files Generated:" >> $GITHUB_STEP_SUMMARY
+          ls -lh build/app/outputs/flutter-apk/*.apk | awk '{print "- " $9 " (" $5 ")"}' >> $GITHUB_STEP_SUMMARY

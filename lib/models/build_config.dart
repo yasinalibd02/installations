@@ -4,6 +4,7 @@ class BuildConfig {
   final String appName;
   final String packageName;
   final String logoPath;
+  final String? domain;
 
   BuildConfig({
     required this.repoUrl,
@@ -11,6 +12,7 @@ class BuildConfig {
     required this.appName,
     required this.packageName,
     required this.logoPath,
+    this.domain,
   });
 
   Map<String, dynamic> toJson() {
@@ -20,6 +22,7 @@ class BuildConfig {
       'app_name': appName,
       'package_name': packageName,
       'logo_path': logoPath,
+      'domain': domain,
     };
   }
 
@@ -30,6 +33,7 @@ class BuildConfig {
       appName: json['app_name'] as String,
       packageName: json['package_name'] as String,
       logoPath: json['logo_path'] as String,
+      domain: json['domain'] as String?,
     );
   }
 
@@ -86,6 +90,22 @@ class BuildConfig {
 
     if (!packagePattern.hasMatch(value)) {
       return 'Invalid package name format\n(e.g., com.example.myapp)';
+    }
+
+    return null;
+  }
+
+  static String? validateDomain(String? value) {
+    if (value == null || value.isEmpty) {
+      return null; // Optional
+    }
+
+    final domainPattern = RegExp(
+      r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,6}$',
+    );
+
+    if (!domainPattern.hasMatch(value)) {
+      return 'Invalid domain format (e.g., example.com)';
     }
 
     return null;

@@ -102,6 +102,8 @@ class GitHubService {
         'app_name': config.appName,
         'package_name': config.packageName,
         'logo_path': config.logoPath,
+        if (config.domain != null && config.domain!.isNotEmpty)
+          'domain': config.domain!,
       },
     };
 

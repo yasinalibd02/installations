@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+import 'dart:typed_data';
 
 import '../models/build_config.dart';
 import '../services/github_service.dart';
-
+import '../widgets/file_upload_widget.dart';
 import '../widgets/progress_tracker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -19,11 +19,14 @@ class _HomeScreenState extends State<HomeScreen> {
   final _tokenController = TextEditingController();
   final _appNameController = TextEditingController();
   final _packageNameController = TextEditingController();
+  final _domainController = TextEditingController();
 
   final _githubService = GitHubService();
 
+  Uint8List? _logoBytes;
+  String? _logoFileName;
   bool _isProcessing = false;
-  BuildStep _currentStep = BuildStep.triggeringWorkflow;
+  BuildStep _currentStep = BuildStep.uploadingLogo;
   String? _errorMessage;
   String? _downloadUrl;
   String? _workflowUrl;
@@ -33,7 +36,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _repoUrlController.dispose();
     _tokenController.dispose();
     _appNameController.dispose();
+    _appNameController.dispose();
     _packageNameController.dispose();
+    _domainController.dispose();
     super.dispose();
   }
 
@@ -46,9 +51,19 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    if (_logoBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please upload a logo'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isProcessing = true;
-      _currentStep = BuildStep.triggeringWorkflow;
+      _currentStep = BuildStep.uploadingLogo;
       _errorMessage = null;
       _downloadUrl = null;
       _workflowUrl = null;
@@ -63,14 +78,25 @@ class _HomeScreenState extends State<HomeScreen> {
       final repo = repoInfo['repo']!;
       final token = _tokenController.text.trim();
 
-      // Step 2: Trigger workflow (logoPath is empty now)
+      // Step 1: Upload logo
+      setState(() => _currentStep = BuildStep.uploadingLogo);
+      final logoPath = await _githubService.uploadLogo(
+        token: token,
+        owner: owner,
+        repo: repo,
+        logoBytes: _logoBytes!,
+        fileName: _logoFileName ?? 'launcher.png',
+      );
+
+      // Step 2: Trigger workflow
       setState(() => _currentStep = BuildStep.triggeringWorkflow);
       final config = BuildConfig(
         repoUrl: _repoUrlController.text.trim(),
         token: token,
         appName: _appNameController.text.trim(),
         packageName: _packageNameController.text.trim(),
-        logoPath: '', // Empty path indicates no logo change
+        logoPath: logoPath,
+        domain: _domainController.text.trim(),
       );
 
       final runId = await _githubService.triggerWorkflow(
@@ -397,7 +423,56 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 20),
+
+            // Domain (Optional)
+            TextFormField(
+              controller: _domainController,
+              validator: BuildConfig.validateDomain,
+              enabled: !_isProcessing,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Domain (Optional)',
+                hintText: 'example.com',
+                prefixIcon: const Icon(Icons.public, color: Colors.cyanAccent),
+                labelStyle: const TextStyle(color: Colors.white70),
+                hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.white24),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.white24),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.cyanAccent,
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
+
+            // Logo Upload
+            FileUploadWidget(
+              onFileSelected: (bytes, fileName) {
+                setState(() {
+                  _logoBytes = bytes;
+                  _logoFileName = fileName;
+                });
+              },
+              onFileClear: () {
+                setState(() {
+                  _logoBytes = null;
+                  _logoFileName = null;
+                });
+              },
+            ),
 
             const SizedBox(height: 32),
 
